@@ -417,3 +417,6 @@ class MakeJson():
                 os.remove(file)
         print("########## CODE " +self.type + "_" + "AUTOCURATION END   ##########")
 
+if __name__ == "__main__":
+    dir = ""
+    
