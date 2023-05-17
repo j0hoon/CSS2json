@@ -1,0 +1,35 @@
+{
+    "directory":{
+        "raw":""
+    },    
+    "date":"",
+    "dataType":"",
+    "travelTime":"",
+    "travelDistance":"",
+    "fileSize":"",
+    "georeference":{
+        "type":"",
+        "coordinate":[]
+        },
+    "sampleTime":"",
+    "scenery":{
+        "roadName":"",
+        "event":[],
+        "laneWidthMax":"",
+        "laneWidthMin":"",
+        "curvatureMax":"",
+        "curvatureMin":"",
+        "numOfLane":[]
+    },
+    "environment":{
+        "illumination":"",
+        "weather":""
+        },
+    "dynamic":{
+        "init":[],
+        "story":{
+            "event":[]
+            }
+        },
+    "participant":[]
+}

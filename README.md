@@ -1,5 +1,12 @@
 # CSS2json
-CSS 스키마에 들어가야할 정보를 알고리즘에서 나온 정보를 이용하여 json 파일 형식으로 만들어 주는 코드입니다.
+<!-- This code generates the information that should be in the CSS schema into a json file using the information from the algorithm.
 
-아주대학교 자동제어실험실 석사과정 정영훈입니다.
+This is Younghoon Jung, a master's student at Aju University's Automatic Control Laboratory.
+
+email : riverwind97@ajou.ac.kr
+
+When running the code, belowing code should be in same directory 
+- CSS2json_lib.py
+- CSS_skeleton.json
+-->
 
