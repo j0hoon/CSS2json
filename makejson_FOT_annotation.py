@@ -33,6 +33,25 @@ import h5py
 from datetime import datetime 
 
 
+FUSION_TRACK ={
+    "ID"                : 25, # ID              [26]
+    'REL_POS_Y'         : 26, # REL_POS_Y       [27]
+    "REL_POS_X"         : 27, # REL_POS_X       [28]
+    "REL_VEL_Y"         : 28, # REL_VEL_Y       [29]
+    "REL_VEL_X"         : 29, # REL_VEL_X       [30]
+    "HEADING_ANGLE"     : 30, # HEADING_ANGLE   [31]
+}
+
+# [모빌아이 파라미터 설정 - PREPROCESSING값 사용]
+Lane_data_dict = {'DISTANCE'            : 26, # DISTANCE            [27]
+                  'ROAD_SLOPE'          : 27, # ROAD_SLOPE          [28]
+                  'CURVATURE'           : 28, # CURVATURE           [29]
+                  'CURVATURE_RATE'      : 29, # CURVATURE_RATE      [30]
+                  'NEXT_DISTANCE'       : 30, # NEXT_DISTANCE       [31]
+                  'NEXT_ROAD_SLOPE'     : 31, # NEXT_ROAD_SLOPE     [32]
+                  'NEXT_CURVATURE'      : 32, # NEXT_CURVATURE      [33]
+                  'NEXT_CURVATURE_RATE' : 33, # NEXT_CURVATURE_RATE [34]
+                  'CONFIDENCE'          : 17} # CONFIDENCE          [18] 
 
 class MakeJson():
     def __init__(self,matDir):
@@ -57,7 +76,6 @@ class MakeJson():
             "SF":""
         }
         self.adminProjectName = " "
-
         self.adminCMGT = 0
         self.adminAESGT = 8
         self.MakeJsonPath(self.jsonDir, "json")
@@ -85,7 +103,6 @@ class MakeJson():
         
         man_list = os.listdir(self.manDir)
         
-        
         for _man_path in tqdm(man_list):
             
             fnum = (_man_path.split("\\")[-1]).split("_")[3][:3]
@@ -106,17 +123,8 @@ class MakeJson():
                 raw_file_fnum = (mat_file_matching.split(".")[-2]).split("_")[-1]
             except:
                 continue
-            
             if (fnum == sf_file_fnum and fnum == mat_file_fnum) == False :
                 continue
-            
-            # man_fnum = (os.listdir(self.manDir)[0].split("\\")[-1]).split("_")[3][:3]
-        
-        # for num in tqdm(range(np.size(sfList))):                
-        #     fnum = str(num+1).zfill(3)
-            # except_list = []
-            # if num+1 in except_list:
-            #     continue
             GPS_STATUS = 0
             CHASSIS_STATUS = 0
             MOBILEYE_STATUS = 0
@@ -126,6 +134,7 @@ class MakeJson():
             ODD_STATUS = 0
             CSS_STATUS = [] # (0: Normal, 1: GPS inappropriate, 2: Chassis inappropriate, 3: Mobileye data inappropriate, 4: Front Radar inappropriate, 5: Corner Radar inappropriate, 6: Lidar inappropriate 7: OUT of ODD)
             FRAMESIZE = 0
+            
             TYPE = self.type
             DATE = self.date
             sfName = sf_file_matching.split('\\')[-1]
@@ -138,7 +147,7 @@ class MakeJson():
             if self.type == "CN7":
                 mat = mat73.loadmat(matList[num])
                 mat = h5py.File(matList[num])
-            # GPS_STATUS,CHASSIS_STATUS,MOBILEYE_STATUS,FRONT_RADAR_STATUS,CORNER_RADAR_STATUS,LIDAR_STATUS,ODD_STATUS = self.CheckData(self.type,GPS_STATUS,CHASSIS_STATUS,MOBILEYE_STATUS,FRONT_RADAR_STATUS,CORNER_RADAR_STATUS,LIDAR_STATUS,ODD_STATUS,mat)        
+                
             FRAMESIZE,CHASSIS_STATUS = self.GetVehicleFrameSize(self.type, mat)
             try:
                 registrationFileRoad = pd.read_excel(self.rgDir +r'\Raw\Registration_' + self.type + r'_' + self.date + r'.xlsx',sheet_name = "road")
@@ -242,25 +251,51 @@ class MakeJson():
             columnSize = maneuverLabelDynamic.dropna().shape[1]
             initCount = int(np.size(maneuverLabelDynamic.query('FrameIndex == 1'))/columnSize)
 
-            tmpEgoVelocity = 0
-            tmpRelvelX = 0
+            # tmpEgoVelocity = 0
+            # tmpRelvelX = 0
+            
+            tmp_long_pos = 0
+            tmp_lat_pos = 0
+            tmp_long_vel = 0
+            tmp_lat_vel = 0
+            tmp_long_acc = 0
+            tmp_lat_acc = 0
+            
+            
             last_frameIndex = int(label['FrameIndex'].iloc[indexSize-1])
+            
+            longitudinalPosition = np.zeros(indexSize)
             longitudinalActionVelocity = np.zeros(indexSize)
-
+            longitudinalActionAcceleration = np.zeros(indexSize)
+            lateralPosition = np.zeros(indexSize)
+            lateralActionVelocity = np.zeros(indexSize)
+            lateralActionAcceleration = np.zeros(indexSize)
+            
 
             for frameIndex in range(indexSize):
                 frameNum = int(label['FrameIndex'].iloc[frameIndex]) -1 ## python 은 -1 되어서 사용해야 하므로 전처리
                 try:
-                    tmpEgoVelocity = (float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 6]) + float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 7]))/2
+                    # tmpEgoVelocity = (float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 6]) + float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 7]))/2
                     for trackIdx in range(self.TRACKNUM):
                         if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][self.FT_ID,trackIdx,frameNum]) == int(label['ID'].iloc[0]):  # int(label['ID'].iloc[0]) 을 하는이유 Ego 의 아이디와 비교해서 확인해야 하기 때문에
-                            tmpRelvelX = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][self.FT_RELX,trackIdx,frameNum]
-                    longitudinalActionVelocity[frameIndex] =float(tmpEgoVelocity + tmpRelvelX)
+                            tmp_long_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_POS_Y'],trackIdx,frameNum]
+                            tmp_lat_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_POS_X'],trackIdx,frameNum]
+                            tmp_long_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_VEL_Y'],trackIdx,frameNum]
+                            tmp_lat_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_VEL_X'],trackIdx,frameNum]
+                            tmp_long_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_ACC_Y'],trackIdx,frameNum]
+                            tmp_lat_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_ACC_X'],trackIdx,frameNum]
+                            # tmpRelvelX = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_VEL_Y'],trackIdx,frameNum]
+                    
+                    longitudinalPosition[frameIndex] = float(tmp_long_pos)
+                    longitudinalActionVelocity[frameIndex] =float(tmp_long_vel)
+                    longitudinalActionAcceleration[frameIndex] = float(tmp_long_acc)
+                    lateralPosition[frameIndex] = float(tmp_lat_pos)
+                    lateralActionAcceleration[frameIndex] = float(tmp_lat_acc)
+                    lateralActionVelocity[frameIndex] = float(tmp_lat_vel)                        
                 except:
                     continue
-            longitudinalActionAcceleration=" "
-            lateralActionAcceleration=" "
-            lateralActionVelocity=" "     
+                
+
             #########################################################################################################################
             #participant
             #########################################################################################################################
@@ -419,4 +454,5 @@ class MakeJson():
 
 if __name__ == "__main__":
     dir = ""
-    
+    mkjson = MakeJson(dir)
+    mkjson.AutoCuration()
