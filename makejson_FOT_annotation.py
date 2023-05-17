@@ -284,7 +284,7 @@ class MakeJson():
                             tmp_lat_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_VEL_X'],trackIdx,frameNum]
                             tmp_long_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_ACC_Y'],trackIdx,frameNum]
                             tmp_lat_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_ACC_X'],trackIdx,frameNum]
-                            # tmpRelvelX = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_VEL_Y'],trackIdx,frameNum]
+                            
                     
                     longitudinalPosition[frameIndex] = float(tmp_long_pos)
                     longitudinalActionVelocity[frameIndex] =float(tmp_long_vel)
@@ -353,11 +353,11 @@ class MakeJson():
             dynamic_init_action_ego = { # for init 
                 "longitudinalAction":{     
                     "velocity":float(longitudinalActionVelocity[0]), # ego 의 차속
-                    "acceleration":longitudinalActionAcceleration
+                    "acceleration":float(longitudinalActionAcceleration[0])
                                 },
                 "lateralAction":{
-                    "acceleration":lateralActionAcceleration,
-                    "velocity":lateralActionVelocity
+                    "acceleration":float(lateralActionAcceleration[0]),
+                    "velocity":float(lateralActionVelocity[0])
                 } 
             }
 
@@ -401,12 +401,14 @@ class MakeJson():
                     },
                     "action":{
                         "longitudinalAction":{     
+                            "position":longitudinalPosition[i],
                             "velocity":longitudinalActionVelocity[i],
-                            "acceleration":longitudinalActionAcceleration
+                            "acceleration":longitudinalActionAcceleration[i]
                                         },
                         "lateralAction":{
-                            "acceleration":lateralActionAcceleration,
-                            "velocity":lateralActionVelocity
+                            "position":lateralPosition[i],
+                            "acceleration":lateralActionAcceleration[i],
+                            "velocity":lateralActionVelocity[i]
                         }                     
                     }
                 }
