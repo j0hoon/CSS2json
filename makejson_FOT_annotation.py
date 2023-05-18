@@ -145,7 +145,7 @@ class MakeJson():
             if self.type == "RG3":
                 mat = scipy.io.loadmat(matList[num])
             if self.type == "CN7":
-                mat = mat73.loadmat(matList[num])
+                # mat = mat73.loadmat(matList[num])
                 mat = h5py.File(matList[num])
             
             FRAMESIZE = matSf['SF_PP']['sim_time'][0,0].shape[0]
@@ -222,7 +222,8 @@ class MakeJson():
             sceneryRoadName = self.GetRoadName(registrationFileRoad,num)
             # maneuverFile = self.manDir + '\\' + "Maneuver_" + self.type + '_' +self.date + '_' +fnum + '.xlsx' ################### 여기 는 나중에 바뀔 내용
             # maneuverFile = os.getcwd() + '\\Output_xlsx\\'+self.type +'_' + self.date+'\\Annotation_'+self.type+'_'+self.date+'_' + fnum +'.xlsx'
-            maneuverFile = os.getcwd() + '\\Output_xlsx\\'+self.type +'_' + self.date+'\\Annotation_'+self.type+'_'+self.date+'_' + fnum +'.xlsx'
+            # maneuverFile = os.getcwd() + '\\Output_xlsx\\'+self.type +'_' + self.date+'\\Maneuver_'+self.type+'_'+self.date+'_' + fnum +'.xlsx'
+            maneuverFile = self.manDir +'\\Maneuver_'+self.type+'_'+self.date+'_' + fnum +'.xlsx'
             try:
                 maneuverLabel = pd.read_excel(maneuverFile, sheet_name = 'Label')
             except:
@@ -275,10 +276,18 @@ class MakeJson():
 
             for frameIndex in range(indexSize):
                 frameNum = int(label['FrameIndex'].iloc[frameIndex]) -1 ## python 은 -1 되어서 사용해야 하므로 전처리
+                
+                ### 최대 프레임을 넘지 않는지 체크
+                if frameNum +1 > FRAMESIZE:
+                    break
+                
                 try:
                     # tmpEgoVelocity = (float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 6]) + float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 7]))/2
                     for trackIdx in range(self.TRACKNUM):
-                        if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][self.FT_ID,trackIdx,frameNum]) == int(label['ID'].iloc[0]):  # int(label['ID'].iloc[0]) 을 하는이유 Ego 의 아이디와 비교해서 확인해야 하기 때문에
+                        # if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[0]):  # int(label['ID'].iloc[0]) 을 하는이유 Ego 의 아이디와 비교해서 확인해야 하기 때문에
+                        if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[0]):  # int(label['ID'].iloc[0]) 을 하는이유 Ego 의 아이디와 비교해서 확인해야 하기 때문에                            
+                            
+                            
                             tmp_long_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_POS_Y'],trackIdx,frameNum]
                             tmp_lat_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_POS_X'],trackIdx,frameNum]
                             tmp_long_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_VEL_Y'],trackIdx,frameNum]
@@ -296,6 +305,55 @@ class MakeJson():
                 except:
                     continue
                 
+
+
+
+            for frameIndex in range(indexSize):
+                frameNum = int(label['FrameIndex'].iloc[frameIndex]) -1 ## python 은 -1 되어서 사용해야 하므로 전처리
+                
+                ### 최대 프레임을 넘지 않는지 체크
+                if frameNum +1 > FRAMESIZE:
+                    break
+                
+                try:
+                    # tmpEgoVelocity = (float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 6]) + float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 7]))/2
+                    for trackIdx in range(self.TRACKNUM):
+                        # if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[0]):  # int(label['ID'].iloc[0]) 을 하는이유 Ego 의 아이디와 비교해서 확인해야 하기 때문에
+                        if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[frameIndex]):  
+                            
+                            
+                            tmp_long_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_POS_Y'],trackIdx,frameNum]
+                            tmp_lat_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_POS_X'],trackIdx,frameNum]
+                            tmp_long_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_VEL_Y'],trackIdx,frameNum]
+                            tmp_lat_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_VEL_X'],trackIdx,frameNum]
+                            tmp_long_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_ACC_Y'],trackIdx,frameNum]
+                            tmp_lat_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_ACC_X'],trackIdx,frameNum]
+                            
+                    
+                    longitudinalPosition[frameIndex] = float(tmp_long_pos)
+                    longitudinalActionVelocity[frameIndex] =float(tmp_long_vel)
+                    longitudinalActionAcceleration[frameIndex] = float(tmp_long_acc)
+                    lateralPosition[frameIndex] = float(tmp_lat_pos)
+                    lateralActionAcceleration[frameIndex] = float(tmp_lat_acc)
+                    lateralActionVelocity[frameIndex] = float(tmp_lat_vel)                        
+                except:
+                    continue
+                
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
             #########################################################################################################################
             #participant
@@ -501,8 +559,8 @@ class MakeJson():
         elif TYPE == 'CN7':
             try:
                 # gnss_filter_positionlla_vector =pd.DataFrame(np.array(Mat['GNSS']['Filter_Positionlla_Vector']))
-                gnss_lat = Mat['GNSS']['GNSS_Latitude'][0][0]
-                gnss_long = Mat['GNSS']['GNSS_Longitude'][0][0]
+                gnss_lat = float(Mat['GNSS']['GNSS_Latitude'][0][0])
+                gnss_long = float(Mat['GNSS']['GNSS_Longitude'][0][0])
                 admin_georeference_coordinates = [round(gnss_long,8),round(gnss_lat,8)]
                 # admin_georeference_coordinates=[round(float(gnss_filter_positionlla_vector[0].loc[0]['X'][0]),8),round(float(gnss_filter_positionlla_vector[0].loc[0]['Y'][0] ),8)]
             except:
