@@ -18,7 +18,7 @@ import pandas as pd
 import numpy as np
 import scipy.io
 import string
-import scipy.io 
+import scipy.io as sio
 import glob
 import os
 import pyrosbag as rb
@@ -33,7 +33,7 @@ import h5py
 from datetime import datetime 
 
 
-FUSION_TRACK ={
+RG3_FT ={
     "ID"                : 25, # ID              [26]
     'REL_POS_Y'         : 26, # REL_POS_Y       [27]
     "REL_POS_X"         : 27, # REL_POS_X       [28]
@@ -41,6 +41,16 @@ FUSION_TRACK ={
     "REL_VEL_X"         : 29, # REL_VEL_X       [30]
     "HEADING_ANGLE"     : 30, # HEADING_ANGLE   [31]
 }
+
+CN7_FT ={
+    "ID"                : 21, # ID              [22]
+    'REL_POS_Y'         : 22, # REL_POS_Y       [23]
+    "REL_POS_X"         : 23, # REL_POS_X       [24]
+    "REL_VEL_Y"         : 24, # REL_VEL_Y       [25]
+    "REL_VEL_X"         : 25, # REL_VEL_X       [26]
+}
+
+
 
 # [모빌아이 파라미터 설정 - PREPROCESSING값 사용]
 Lane_data_dict = {'DISTANCE'            : 26, # DISTANCE            [27]
@@ -52,6 +62,12 @@ Lane_data_dict = {'DISTANCE'            : 26, # DISTANCE            [27]
                   'NEXT_CURVATURE'      : 32, # NEXT_CURVATURE      [33]
                   'NEXT_CURVATURE_RATE' : 33, # NEXT_CURVATURE_RATE [34]
                   'CONFIDENCE'          : 17} # CONFIDENCE          [18] 
+
+
+
+
+
+
 
 class MakeJson():
     def __init__(self,matDir):
@@ -273,84 +289,141 @@ class MakeJson():
             lateralActionVelocity = np.zeros(indexSize)
             lateralActionAcceleration = np.zeros(indexSize)
             
-
-            for frameIndex in range(indexSize):
-                frameNum = int(label['FrameIndex'].iloc[frameIndex]) -1 ## python 은 -1 되어서 사용해야 하므로 전처리
-                
-                ### 최대 프레임을 넘지 않는지 체크
-                if frameNum +1 > FRAMESIZE:
-                    break
-                
-                try:
-                    # tmpEgoVelocity = (float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 6]) + float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 7]))/2
-                    for trackIdx in range(self.TRACKNUM):
-                        # if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[0]):  # int(label['ID'].iloc[0]) 을 하는이유 Ego 의 아이디와 비교해서 확인해야 하기 때문에
-                        if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[0]):  # int(label['ID'].iloc[0]) 을 하는이유 Ego 의 아이디와 비교해서 확인해야 하기 때문에                            
-                            
-                            
-                            tmp_long_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_POS_Y'],trackIdx,frameNum]
-                            tmp_lat_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_POS_X'],trackIdx,frameNum]
-                            tmp_long_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_VEL_Y'],trackIdx,frameNum]
-                            tmp_lat_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_VEL_X'],trackIdx,frameNum]
-                            tmp_long_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_ACC_Y'],trackIdx,frameNum]
-                            tmp_lat_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_ACC_X'],trackIdx,frameNum]
-                            
+            if self.type == "RG3":
+                for frameIndex in range(indexSize):
+                    frameNum = int(label['FrameIndex'].iloc[frameIndex]) -1 ## python 은 -1 되어서 사용해야 하므로 전처리
                     
-                    longitudinalPosition[frameIndex] = float(tmp_long_pos)
-                    longitudinalActionVelocity[frameIndex] =float(tmp_long_vel)
-                    longitudinalActionAcceleration[frameIndex] = float(tmp_long_acc)
-                    lateralPosition[frameIndex] = float(tmp_lat_pos)
-                    lateralActionAcceleration[frameIndex] = float(tmp_lat_acc)
-                    lateralActionVelocity[frameIndex] = float(tmp_lat_vel)                        
-                except:
-                    continue
-                
-
-
-
-            for frameIndex in range(indexSize):
-                frameNum = int(label['FrameIndex'].iloc[frameIndex]) -1 ## python 은 -1 되어서 사용해야 하므로 전처리
-                
-                ### 최대 프레임을 넘지 않는지 체크
-                if frameNum +1 > FRAMESIZE:
-                    break
-                
-                try:
-                    # tmpEgoVelocity = (float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 6]) + float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 7]))/2
-                    for trackIdx in range(self.TRACKNUM):
-                        # if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[0]):  # int(label['ID'].iloc[0]) 을 하는이유 Ego 의 아이디와 비교해서 확인해야 하기 때문에
-                        if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[frameIndex]):  
-                            
-                            
-                            tmp_long_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_POS_Y'],trackIdx,frameNum]
-                            tmp_lat_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_POS_X'],trackIdx,frameNum]
-                            tmp_long_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_VEL_Y'],trackIdx,frameNum]
-                            tmp_lat_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_VEL_X'],trackIdx,frameNum]
-                            tmp_long_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_ACC_Y'],trackIdx,frameNum]
-                            tmp_lat_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][FUSION_TRACK['REL_ACC_X'],trackIdx,frameNum]
-                            
+                    ### 최대 프레임을 넘지 않는지 체크
+                    if frameNum +1 > FRAMESIZE:
+                        break
                     
-                    longitudinalPosition[frameIndex] = float(tmp_long_pos)
-                    longitudinalActionVelocity[frameIndex] =float(tmp_long_vel)
-                    longitudinalActionAcceleration[frameIndex] = float(tmp_long_acc)
-                    lateralPosition[frameIndex] = float(tmp_lat_pos)
-                    lateralActionAcceleration[frameIndex] = float(tmp_lat_acc)
-                    lateralActionVelocity[frameIndex] = float(tmp_lat_vel)                        
-                except:
-                    continue
+                    try:
+                        # tmpEgoVelocity = (float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 6]) + float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 7]))/2
+                        for trackIdx in range(self.TRACKNUM):
+                            # if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[0]):  # int(label['ID'].iloc[0]) 을 하는이유 Ego 의 아이디와 비교해서 확인해야 하기 때문에
+                            if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[0]):  # int(label['ID'].iloc[0]) 을 하는이유 Ego 의 아이디와 비교해서 확인해야 하기 때문에                            
+                                
+                                
+                                tmp_long_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['REL_POS_Y'],trackIdx,frameNum]
+                                tmp_lat_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['REL_POS_X'],trackIdx,frameNum]
+                                tmp_long_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['REL_VEL_Y'],trackIdx,frameNum]
+                                tmp_lat_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['REL_VEL_X'],trackIdx,frameNum]
+                                tmp_long_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['REL_ACC_Y'],trackIdx,frameNum]
+                                tmp_lat_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['REL_ACC_X'],trackIdx,frameNum]
+                                
+                            elif int(label['ID'].iloc[frameIndex]) == 0 and str(label['Recognition']) == "Ego":
+                                tmp_long_pos = 0
+                                tmp_lat_pos = 0
+                                tmp_long_vel = 0
+                                tmp_lat_vel = 0
+                                tmp_long_acc = 0
+                                tmp_lat_acc = 0
+                                
+                        longitudinalPosition[frameIndex] = float(tmp_long_pos)
+                        longitudinalActionVelocity[frameIndex] =float(tmp_long_vel)
+                        longitudinalActionAcceleration[frameIndex] = float(tmp_long_acc)
+                        lateralPosition[frameIndex] = float(tmp_lat_pos)
+                        lateralActionAcceleration[frameIndex] = float(tmp_lat_acc)
+                        lateralActionVelocity[frameIndex] = float(tmp_lat_vel)                        
+                    except:
+                        continue
+            
+            elif self.type == "CN7":
                 
+                for frameIndex in range(indexSize):
+                    frameNum = int(label['FrameIndex'].iloc[frameIndex]) -1 ## python 은 -1 되어서 사용해야 하므로 전처리
+                    
+                    ### 최대 프레임을 넘지 않는지 체크
+                    if frameNum +1 > FRAMESIZE:
+                        break
+                    
+                    try:
+                        # tmpEgoVelocity = (float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 6]) + float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 7]))/2
+                        for trackIdx in range(self.TRACKNUM):
+                            # if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[0]):  # int(label['ID'].iloc[0]) 을 하는이유 Ego 의 아이디와 비교해서 확인해야 하기 때문에
+                            if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][CN7_FT['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[frameIndex]): 
+                                
+                                # pos
+                                tmp_long_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][CN7_FT['REL_POS_X'],trackIdx,frameNum]
+                                tmp_lat_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][CN7_FT['REL_POS_Y'],trackIdx,frameNum]
+                                
+                                # vel
+                                tmp_long_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][CN7_FT['REL_VEL_X'],trackIdx,frameNum]
+                                tmp_lat_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][CN7_FT['REL_VEL_Y'],trackIdx,frameNum]
+                                
+                                # acc
+                                # tmp_long_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][CN7_FT['REL_ACC_Y'],trackIdx,frameNum]
+                                # tmp_lat_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][CN7_FT['REL_ACC_X'],trackIdx,frameNum]
+                                tmp_long_acc = 0
+                                tmp_lat_acc = 0
+                            
+
+                            
+                          
+                            
+                            
+                            elif int(label['ID'].iloc[frameIndex]) == 0 and str(label['Recognition']) == "Ego":
+                                tmp_long_pos = 0
+                                tmp_lat_pos = 0
+                                tmp_long_vel = 0
+                                tmp_lat_vel = 0
+                                tmp_long_acc = 0
+                                tmp_lat_acc = 0
+                        
+                        longitudinalPosition[frameIndex] = float(tmp_long_pos)
+                        longitudinalActionVelocity[frameIndex] =float(tmp_long_vel)
+                        longitudinalActionAcceleration[frameIndex] = float(tmp_long_acc)
+                        lateralPosition[frameIndex] = float(tmp_lat_pos)
+                        lateralActionAcceleration[frameIndex] = float(tmp_lat_acc)
+                        lateralActionVelocity[frameIndex] = float(tmp_lat_vel)                        
+                    
+                    except:
+                        continue
+            
 
 
 
-
-
-
-
-
-
-
-
-
+            # for frameIndex in range(indexSize):
+            #     frameNum = int(label['FrameIndex'].iloc[frameIndex]) -1 ## python 은 -1 되어서 사용해야 하므로 전처리
+                
+            #     ### 최대 프레임을 넘지 않는지 체크
+            #     if frameNum +1 > FRAMESIZE:
+            #         break
+                
+            #     try:
+            #         # tmpEgoVelocity = (float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 6]) + float(matSf['SF_PP']['In_Vehicle_Sensor_sim'][0,0][frameNum , 7]))/2
+            #         for trackIdx in range(self.TRACKNUM):
+            #             # if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[0]):  # int(label['ID'].iloc[0]) 을 하는이유 Ego 의 아이디와 비교해서 확인해야 하기 때문에
+                        
+                        
+                        
+            #             if int(matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['ID'],trackIdx,frameNum]) == int(label['ID'].iloc[frameIndex]):  
+                            
+                            
+            #                 tmp_long_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['REL_POS_Y'],trackIdx,frameNum]
+            #                 tmp_lat_pos = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['REL_POS_X'],trackIdx,frameNum]
+            #                 tmp_long_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['REL_VEL_Y'],trackIdx,frameNum]
+            #                 tmp_lat_vel = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['REL_VEL_X'],trackIdx,frameNum]
+            #                 tmp_long_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['REL_ACC_Y'],trackIdx,frameNum]
+            #                 tmp_lat_acc = matSf['SF_PP']['Fusion_Track_Maneuver'][0,0][RG3_FT['REL_ACC_X'],trackIdx,frameNum]
+                        
+            #             elif int(label['ID'].iloc[frameIndex]) == 0 and str(label['Recognition']) == "Ego":
+            #                 tmp_long_pos = 0
+            #                 tmp_lat_pos = 0
+            #                 tmp_long_vel = 0
+            #                 tmp_lat_vel = 0
+            #                 tmp_long_acc = 0
+            #                 tmp_lat_acc = 0                            
+                    
+            #         longitudinalPosition[frameIndex] = float(tmp_long_pos)
+            #         longitudinalActionVelocity[frameIndex] =float(tmp_long_vel)
+            #         longitudinalActionAcceleration[frameIndex] = float(tmp_long_acc)
+            #         lateralPosition[frameIndex] = float(tmp_lat_pos)
+            #         lateralActionAcceleration[frameIndex] = float(tmp_lat_acc)
+            #         lateralActionVelocity[frameIndex] = float(tmp_lat_vel)                        
+            #     except:
+            #         continue
+                
 
 
 
@@ -409,39 +482,91 @@ class MakeJson():
                 }
             }          
             
-            dynamic_init_action_ego = { # for init 
-                "longitudinalAction":{     
-                    "velocity":float(longitudinalActionVelocity[0]), # ego 의 차속
-                    "acceleration":float(longitudinalActionAcceleration[0])
-                                },
-                "lateralAction":{
-                    "acceleration":float(lateralActionAcceleration[0]),
-                    "velocity":float(lateralActionVelocity[0])
-                } 
-            }
+            # dynamic_init_action_ego = { # for init 
+            #     "longitudinalAction":{    
+            #         "position" :"",
+            #         "velocity":float(longitudinalActionVelocity[0]), # ego 의 차속
+            #         "acceleration":float(longitudinalActionAcceleration[0])
+            #                     },
+            #     "lateralAction":{
+            #         "position" :"",
+            #         "acceleration":float(lateralActionAcceleration[0]),
+            #         "velocity":float(lateralActionVelocity[0])
+            #     } 
+            # }
 
-            dynamic_init_action = { # for init 이지만 ego 가 아닌 대상을 위해
-                "longitudinalAction":{     
-                    "velocity":" ",
-                    "acceleration":longitudinalActionAcceleration
-                                },
-                "lateralAction":{
-                    "acceleration":lateralActionAcceleration,
-                    "velocity":lateralActionVelocity
-                } 
-            }  
+            # dynamic_init_action = { # for init 이지만 ego 가 아닌 대상을 위해
+            #     "longitudinalAction":{     
+            #         "position" :"",
+            #         "velocity":" ",
+            #         "acceleration":longitudinalActionAcceleration
+            #                     },
+            #     "lateralAction":{
+            #         "position" :"",
+            #         "acceleration":lateralActionAcceleration,
+            #         "velocity":lateralActionVelocity
+            #     } 
+            # }  
 
+            
+            # dynamic_init_action = { 
+            #     "longitudinalAction":{     
+            #         "position" : longitudinalPosition,
+            #         "velocity": longitudinalActionVelocity,
+            #         "acceleration":longitudinalActionAcceleration
+            #                     },
+            #     "lateralAction":{
+            #         "position" : lateralPosition,
+            #         "acceleration":lateralActionAcceleration,
+            #         "velocity":lateralActionVelocity
+            #     } 
+            # }  
+            
+            
             for i in range(initCount):
-                if i ==0:
-                    dynamic['init'].append({"frameIndex":int(maneuverLabelDynamic['FrameIndex'].iloc[i]),\
-                    "participantID":int(maneuverLabelDynamic['ID'].iloc[i]),"recognition":str(maneuverLabelDynamic['Recognition'].iloc[i])\
-                    ,"maneuver":str(maneuverLabelDynamic['Maneuver'].iloc[i]),"category":int(maneuverLabelDynamic['Category'].iloc[i]),\
-                    "action": dynamic_init_action_ego})
-                else :
-                    dynamic['init'].append({"frameIndex":int(maneuverLabelDynamic['FrameIndex'].iloc[i]),\
-                    "participantID":int(maneuverLabelDynamic['ID'].iloc[i]),"recognition":str(maneuverLabelDynamic['Recognition'].iloc[i])\
-                    ,"maneuver":str(maneuverLabelDynamic['Maneuver'].iloc[i]),"category":int(maneuverLabelDynamic['Category'].iloc[i]),\
-                    "action": dynamic_init_action})                   
+
+                dynamic_init_action = { 
+                    "longitudinalAction":{     
+                        "position" : longitudinalPosition[i],
+                        "velocity": longitudinalActionVelocity[i],
+                        "acceleration":longitudinalActionAcceleration[i]
+                                    },
+                    "lateralAction":{
+                        "position" : lateralPosition[i],
+                        "velocity":lateralActionVelocity[i],
+                        "acceleration":lateralActionAcceleration[i]
+                        
+                    } 
+                }  
+                
+                dynamic['init'].append({"frameIndex":int(maneuverLabelDynamic['FrameIndex'].iloc[i]),\
+                "participantID":int(maneuverLabelDynamic['ID'].iloc[i]),"recognition":str(maneuverLabelDynamic['Recognition'].iloc[i])\
+                ,"maneuver":str(maneuverLabelDynamic['Maneuver'].iloc[i]),"category":int(maneuverLabelDynamic['Category'].iloc[i]),\
+                "action": dynamic_init_action})     
+            
+            
+            
+            
+            
+            # for i in range(initCount):
+                
+            #     ### EGO 인경우 
+            #     if int(maneuverLabelDynamic['ID'].iloc[i]) == 0 or "Ego" in str(maneuverLabelDynamic['Recognition'].iloc[i]):
+            #         dynamic['init'].append({"frameIndex":int(maneuverLabelDynamic['FrameIndex'].iloc[i]),\
+            #         "participantID":int(maneuverLabelDynamic['ID'].iloc[i]),"recognition":str(maneuverLabelDynamic['Recognition'].iloc[i])\
+            #         ,"maneuver":str(maneuverLabelDynamic['Maneuver'].iloc[i]),"category":int(maneuverLabelDynamic['Category'].iloc[i]),\
+            #         "action": dynamic_init_action_ego})
+            #     # if i ==0:
+            #     #     dynamic['init'].append({"frameIndex":int(maneuverLabelDynamic['FrameIndex'].iloc[i]),\
+            #     #     "participantID":int(maneuverLabelDynamic['ID'].iloc[i]),"recognition":str(maneuverLabelDynamic['Recognition'].iloc[i])\
+            #     #     ,"maneuver":str(maneuverLabelDynamic['Maneuver'].iloc[i]),"category":int(maneuverLabelDynamic['Category'].iloc[i]),\
+            #     #     "action": dynamic_init_action_ego})
+            #     else :
+            #         dynamic['init'].append({"frameIndex":int(maneuverLabelDynamic['FrameIndex'].iloc[i]),\
+            #         "participantID":int(maneuverLabelDynamic['ID'].iloc[i]),"recognition":str(maneuverLabelDynamic['Recognition'].iloc[i])\
+            #         ,"maneuver":str(maneuverLabelDynamic['Maneuver'].iloc[i]),"category":int(maneuverLabelDynamic['Category'].iloc[i]),\
+            #         "action": dynamic_init_action})                   
+
 
             dynamic_story_startTrigger = {
                 "conditionName":" ",
@@ -475,7 +600,7 @@ class MakeJson():
 
             ### Generate CSS ###
 
-            CSS_STATUS = self.CheckCSSStatus(GPS_STATUS,CHASSIS_STATUS,MOBILEYE_STATUS,FRONT_RADAR_STATUS,CORNER_RADAR_STATUS,LIDAR_STATUS,ODD_STATUS,CSS_STATUS = CSS_STATUS)
+            # CSS_STATUS = self.CheckCSSStatus(GPS_STATUS,CHASSIS_STATUS,MOBILEYE_STATUS,FRONT_RADAR_STATUS,CORNER_RADAR_STATUS,LIDAR_STATUS,ODD_STATUS,CSS_STATUS = CSS_STATUS)
             adminStatus = CSS_STATUS
             CSS_STATUS = []        
             
@@ -489,7 +614,7 @@ class MakeJson():
                 os.mkdir(self.jsonDir)
             if os.path.isdir(jsonFilePath) == False:
                 os.mkdir(jsonFilePath)            
-            with open(jsonFilePath+jsonFileName, 'w') as outfile:
+            with open(jsonFilePath + jsonFileName, 'w') as outfile:
                 json.dump(CSS, outfile,indent='\t')    
 
         jsonList = natsort.natsorted(glob.glob(self.jsonDir + '\\*_AutoCuration_temp.json'))
@@ -502,7 +627,7 @@ class MakeJson():
         realTime = '_'+str(realTime)[:4] +'_'+str(realTime)[5:7] +'_'+ str(realTime)[8:10] +'_'+ str(realTime)[11:13]+'_'+str(realTime)[14:16]
         
 
-        temp_num = 0
+        # temp_num = 0
         with open(jsonFilePath + '\\' + TYPE+ '_' + DATE+'_'+realTime+'_AutoCuration.json' ,"w") as new_file:
             # json.dump(temp , new_file,indent='\t')
             json.dump([temp[i][0] for i in range(np.size(jsonList))] , new_file,indent='\t')
@@ -847,7 +972,13 @@ class MakeJson():
         
         return driver
 
+    # def get_lane_num(self):
 
+
+        
+        
+        
+    #     return lane_num
     
 if __name__ == "__main__":
     dir = r"\\192.168.75.251\Shares\FOT_Avante Data_1\Rosbag2Mat\CN7_030423"
